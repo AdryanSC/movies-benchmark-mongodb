@@ -11,36 +11,32 @@ function lerCSV(caminho) {
     const dados = [];
     fs.createReadStream(caminho)
       .pipe(csv())
-      .on("data", (linha) => dados.push(linha))
+      .on("data", (linha) => {
+        if (linha.IMDB_Rating) linha.IMDB_Rating = parseFloat(linha.IMDB_Rating);
+        if (linha.No_of_Votes) linha.No_of_Votes = parseInt(linha.No_of_Votes.replace(/,/g, ""), 10);
+        dados.push(linha);
+      })
       .on("end", () => resolve(dados));
   });
 }
 
 export async function executar() {
   await cliente.connect();
-  console.log("Conectado ao MongoDB");
+  console.log("✅ Conectado ao MongoDB");
 
-  const banco = cliente.db("ecommerce");
+  const banco = cliente.db("imdb");
 
   const inicio = Date.now();
 
-  const clientes = await lerCSV("../dataset/olist_customers_dataset.csv");
-  console.log(`Clientes lidos: ${clientes.length}`);
+  const filmes = await lerCSV("../dataset/imdb_top_1000.csv");
+  console.log(`🎬 Filmes lidos: ${filmes.length}`);
 
-  const pedidos = await lerCSV("../dataset/olist_orders_dataset.csv");
-  console.log(`Pedidos lidos: ${pedidos.length}`);
-
-  const itensPedido = await lerCSV("../dataset/olist_order_items_dataset.csv");
-  console.log(`Itens de pedido lidos: ${itensPedido.length}`);
-
-  await banco.collection("clientes").insertMany(clientes);
-  await banco.collection("pedidos").insertMany(pedidos);
-  await banco.collection("itens_pedido").insertMany(itensPedido);
+  await banco.collection("filmes").insertMany(filmes);
 
   const fim = Date.now();
   const tempo = ((fim - inicio) / 1000).toFixed(2);
 
-  console.log(`Inserção em massa concluída em ${tempo} segundos`);
+  console.log(`📌 Inserção em massa concluída em ${tempo} segundos`);
   salvarResultado("Inserção em Massa", tempo);
 
   await cliente.close();
